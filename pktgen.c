@@ -153,6 +153,7 @@
 #include <linux/prefetch.h>
 #include <linux/mmzone.h>
 #include <linux/percpu.h>
+#include <linux/ktime.h>
 #include <net/net_namespace.h>
 #include <net/checksum.h>
 #include <net/ipv6.h>
@@ -1995,7 +1996,7 @@ static int pgrx_show(struct seq_file *seq, void *v)
 	int option = PG_DISPLAY_HUMAN;
 	u64 total_packets = 0, total_bytes = 0;
 	u64 packets = 0, bytes = 0;
-	ktime_t start_global, stop_global, tmp;
+	u64 start_global, stop_global, tmp;
 	start_global = 0;
 	stop_global = 0;
 
@@ -2027,8 +2028,8 @@ static int pgrx_show(struct seq_file *seq, void *v)
 		else if (tmp < start_global && tmp != 0)
 			start_global = tmp;
 
-		tmp = data_cpu->last_time;
-		if (ktime_to_ns(tmp) > ktime_to_ns(stop_global))
+		tmp = ktime_to_ns(data_cpu->last_time);
+		if (tmp > stop_global)
 			stop_global = tmp;
 
 		show_bw(option, seq, data_cpu->start_time, data_cpu->last_time,
