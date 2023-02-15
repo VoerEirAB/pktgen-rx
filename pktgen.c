@@ -174,6 +174,7 @@
 
 #include <linux/netfilter.h>
 #include <linux/netfilter_ipv4.h>
+#include <linux/netfilter_ipv6.h>
 
 #define VERSION	"2.75"
 #define IP_NAME_SZ 32
@@ -555,6 +556,14 @@ static struct nf_hook_ops nfho __read_mostly = {
 	.hook = pktgen_rcv_basic,
 	.hooknum = NF_INET_PRE_ROUTING,
 	.pf = PF_INET,
+	.priority = 1,
+	//.owner = THIS_MODULE,
+};
+
+static struct nf_hook_ops nfho6 __read_mostly = {
+	.hook = pktgen_rcv_basic,
+	.hooknum = NF_INET_PRE_ROUTING,
+	.pf = PF_INET6,
 	.priority = 1,
 	//.owner = THIS_MODULE,
 };
@@ -4156,8 +4165,10 @@ static int pktgen_add_rx(const char *ifname)
 		pg_rx_global->stats_option = RX_BASIC;
 		pg_rx_global->display_option = PG_DISPLAY_HUMAN;
 
-		nfho.hook = pktgen_rcv_basic;
+		nfho6.hook = nfho.hook = pktgen_rcv_basic;
+
 		nf_register_net_hook(&init_net, &nfho);
+		nf_register_net_hook(&init_net, &nfho6);
 		//dev_add_pack(&pktgen_packet_type);
 		err = 0;
 		//net_disable_timestamp();
@@ -4182,23 +4193,25 @@ static int pktgen_set_statistics(const char *f)
 
 	//net_disable_timestamp();
 	nf_unregister_net_hook(&init_net, &nfho);
+	nf_unregister_net_hook(&init_net, &nfho6);
 
 	if (!strcmp(f, "counter")) {
 		pg_rx_global->stats_option = RX_COUNTER;
-		nfho.hook = pktgen_rcv_counter;
+		nfho6.hook = nfho.hook = pktgen_rcv_counter;
 		ret = 0;
 	} else if (!strcmp(f, "basic")) {
 		pg_rx_global->stats_option = RX_BASIC;
-		nfho.hook = pktgen_rcv_basic;
+		nfho6.hook = nfho.hook = pktgen_rcv_basic;
 		ret = 0;
 	} else if (!strcmp(f, "time")) {
 		pg_rx_global->stats_option = RX_TIME;
-		nfho.hook = pktgen_rcv_time;
+		nfho6.hook = nfho.hook = pktgen_rcv_time;
 		ret = 0;
 	} else
 		ret = -EINVAL;
 
 	nf_register_net_hook(&init_net, &nfho);
+	nf_register_net_hook(&init_net, &nfho6);
 	return ret;
 }
 
@@ -4223,6 +4236,7 @@ static int pktgen_clean_rx(void)
 {
 	if (pg_initialized) {
 		nf_unregister_net_hook(&init_net, &nfho);
+		nf_unregister_net_hook(&init_net, &nfho6);
 		kfree(pg_rx_global);
 		pg_initialized = 0;
 	}
