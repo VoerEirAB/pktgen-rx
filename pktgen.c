@@ -3676,6 +3676,8 @@ static void pktgen_xmit(struct pktgen_dev *pkt_dev)
 			ret = netif_receive_skb(skb);
 			if (ret == NET_RX_DROP)
 				pkt_dev->errors++;
+				printf("Error Code: NET_RX_DROP, errors: %llu", 
+				      (unsigned long long) pkt_dev->errors)
 			pkt_dev->sofar++;
 			pkt_dev->seq_num++;
 			if (refcount_read(&skb->users) != burst) {
@@ -3706,19 +3708,24 @@ static void pktgen_xmit(struct pktgen_dev *pkt_dev)
 			pkt_dev->tx_bytes += pkt_dev->last_pkt_size;
 			break;
 		case NET_XMIT_DROP:
+		printf("Error Code:NET_XMIT_DROP")
 		case NET_XMIT_CN:
 		/* These are all valid return codes for a qdisc but
 		 * indicate packets are being dropped or will likely
 		 * be dropped soon.
 		 */
+		printf("Error code: NET_XMIT_CN")
 		case NETDEV_TX_BUSY:
 		/* qdisc may call dev_hard_start_xmit directly in cases
 		 * where no queues exist e.g. loopback device, virtual
 		 * devices, etc. In this case we need to handle
 		 * NETDEV_TX_ codes.
 		 */
+		printf("Error code: NETDEV_TX_BUSY")
 		default:
 			pkt_dev->errors++;
+			printf("errors: %llu", 
+				      (unsigned long long) pkt_dev->errors)
 			net_info_ratelimited("%s xmit error: %d\n",
 					     pkt_dev->odevname, ret);
 			break;
@@ -3752,14 +3759,19 @@ xmit_more:
 			goto xmit_more;
 		break;
 	case NET_XMIT_DROP:
+	printf("Error Code: NET_RX_DROP ")
 	case NET_XMIT_CN:
 		/* skb has been consumed */
 		pkt_dev->errors++;
+		printf("errors: %llu", 
+				      (unsigned long long) pkt_dev->errors)
 		break;
 	default: /* Drivers are not supposed to return other values! */
 		net_info_ratelimited("%s xmit error: %d\n",
 				     pkt_dev->odevname, ret);
 		pkt_dev->errors++;
+		printf("Error code for some error no one knows: errors: %llu", 
+				      (unsigned long long) pkt_dev->errors)
 		/* fall through */
 	case NETDEV_TX_BUSY:
 		/* Retry it next time */
